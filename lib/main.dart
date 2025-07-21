@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/student.dart';
 import 'models/example.dart';
 import 'models/schedule.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Hive.initFlutter();
   Hive.registerAdapter(StudentAdapter());
   Hive.registerAdapter(ExampleAdapter());
@@ -16,22 +18,34 @@ void main() async {
   await Hive.openBox<Example>('examples');
   await Hive.openBox<Schedule>('schedule');
 
-  runApp(SchoolApp());
+  final prefs = await SharedPreferences.getInstance();
+  final themeIndex = prefs.getInt('themeMode') ?? 2; // 0=light,1=dark,2=system
+
+  runApp(SchoolApp(initialThemeMode: ThemeMode.values[themeIndex]));
 }
 
 class SchoolApp extends StatefulWidget {
-  const SchoolApp({super.key});
+  final ThemeMode initialThemeMode;
+  const SchoolApp({super.key, required this.initialThemeMode});
 
   @override
   State<SchoolApp> createState() => _SchoolAppState();
 }
 
 class _SchoolAppState extends State<SchoolApp> {
-  ThemeMode _themeMode = ThemeMode.light;
+  late ThemeMode _themeMode;
 
-  void _toggleTheme(bool isDark) {
+  @override
+  void initState() {
+    super.initState();
+    _themeMode = widget.initialThemeMode;
+  }
+
+  Future<void> _toggleTheme(ThemeMode newTheme) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('themeMode', newTheme.index);
     setState(() {
-      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+      _themeMode = newTheme;
     });
   }
 
@@ -48,7 +62,7 @@ class _SchoolAppState extends State<SchoolApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('uk', 'UA'), Locale('en', 'US')],
-      home: HomePage(toggleTheme: _toggleTheme),
+      home: HomePage(toggleTheme: _toggleTheme, currentThemeMode: _themeMode),
     );
   }
 }

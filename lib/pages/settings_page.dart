@@ -1,41 +1,32 @@
-// pages/settings_page.dart
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/schedule.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  final void Function(ThemeMode)? onThemeChanged;
+  final ThemeMode currentThemeMode;
+
+  const SettingsPage({
+    super.key,
+    this.onThemeChanged,
+    required this.currentThemeMode,
+  });
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _darkTheme = false;
   final _days = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П’ятниця'];
   final _scheduleBox = Hive.box<Schedule>('schedule');
+
+  late ThemeMode _selectedThemeMode;
 
   @override
   void initState() {
     super.initState();
-    _loadTheme();
+    _selectedThemeMode = widget.currentThemeMode;
     _initSchedule();
-  }
-
-  Future<void> _loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _darkTheme = prefs.getBool('darkTheme') ?? false;
-    });
-  }
-
-  Future<void> _saveTheme(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('darkTheme', value);
-    setState(() {
-      _darkTheme = value;
-    });
   }
 
   void _initSchedule() {
@@ -60,7 +51,9 @@ class _SettingsPageState extends State<SettingsPage> {
             title: Text('Уроки на $day'),
             content: TextField(
               controller: controller,
-              decoration: InputDecoration(hintText: 'Математика, Читання'),
+              decoration: const InputDecoration(
+                hintText: 'Математика, Читання',
+              ),
             ),
             actions: [
               TextButton(
@@ -72,11 +65,21 @@ class _SettingsPageState extends State<SettingsPage> {
                   setState(() {});
                   Navigator.pop(context);
                 },
-                child: Text('Зберегти'),
+                child: const Text('Зберегти'),
               ),
             ],
           ),
     );
+  }
+
+  void _onThemeChanged(ThemeMode? mode) {
+    if (mode == null) return;
+    setState(() {
+      _selectedThemeMode = mode;
+    });
+    if (widget.onThemeChanged != null) {
+      widget.onThemeChanged!(mode);
+    }
   }
 
   @override
@@ -85,25 +88,40 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return ListView(
       children: [
-        SwitchListTile(
-          title: Text('Темна тема'),
-          value: _darkTheme,
-          onChanged: (val) {
-            _saveTheme(val);
-            // Сповіщення головного екрану про зміну теми
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Перезапустіть додаток для застосування теми'),
-              ),
-            );
-          },
+        ListTile(
+          title: const Text('Тема оформлення'),
+          subtitle: Text(
+            _selectedThemeMode == ThemeMode.system
+                ? 'Системна'
+                : _selectedThemeMode == ThemeMode.dark
+                ? 'Темна'
+                : 'Світла',
+          ),
         ),
-        Divider(),
-        ListTile(title: Text('Розклад')),
+        RadioListTile<ThemeMode>(
+          title: const Text('Світла'),
+          value: ThemeMode.light,
+          groupValue: _selectedThemeMode,
+          onChanged: _onThemeChanged,
+        ),
+        RadioListTile<ThemeMode>(
+          title: const Text('Темна'),
+          value: ThemeMode.dark,
+          groupValue: _selectedThemeMode,
+          onChanged: _onThemeChanged,
+        ),
+        RadioListTile<ThemeMode>(
+          title: const Text('Системна'),
+          value: ThemeMode.system,
+          groupValue: _selectedThemeMode,
+          onChanged: _onThemeChanged,
+        ),
+        const Divider(),
+        const ListTile(title: Text('Розклад')),
         for (var day in _days)
           ListTile(
             title: Text('$day: ${schedule?.lessons[day]?.join(', ') ?? ''}'),
-            trailing: Icon(Icons.edit),
+            trailing: const Icon(Icons.edit),
             onTap: () => _editDay(day),
           ),
       ],
