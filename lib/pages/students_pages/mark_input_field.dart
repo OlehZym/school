@@ -57,6 +57,9 @@ class _MarkInputFieldState extends State<MarkInputField> {
             final mark = controller.text.trim();
             if (isValidMark(mark)) {
               widget.onSave(mark);
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Оцінку збережено')));
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(

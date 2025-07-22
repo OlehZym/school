@@ -1,9 +1,9 @@
-// pages/students_page.dart
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../models/student.dart';
+import '../../models/student.dart';
+import '../../models/schedule.dart';
 import 'edit_student_page.dart';
-import 'package:school/pages/mark_input_field.dart';
+import 'package:school/pages/students_pages/mark_input_field.dart';
 
 class StudentsPage extends StatefulWidget {
   const StudentsPage({super.key});
@@ -14,11 +14,42 @@ class StudentsPage extends StatefulWidget {
 
 class _StudentsPageState extends State<StudentsPage> {
   final studentsBox = Hive.box<Student>('students');
+  final scheduleBox = Hive.box<Schedule>('schedule');
 
   DateTime selectedDate = DateTime.now();
 
-  /// Хранит пары "дата|урок" для тех оценок, которые сейчас в режиме редактирования
+  /// Хранит пари "дата|урок" для редагування оцінок
   final Set<String> editingLessons = {};
+
+  void _deleteStudent(final student) {
+    showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Видалити учня?'),
+            content: const Text('Цю дію не можна скасувати.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text(
+                  'Скасувати',
+                  style: TextStyle(color: Color.fromARGB(255, 0, 194, 26)),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  student.delete();
+                  Navigator.pop(ctx);
+                },
+                child: const Text(
+                  'Видалити',
+                  style: TextStyle(color: Color.fromARGB(255, 255, 0, 0)),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +135,8 @@ class _StudentsPageState extends State<StudentsPage> {
     String weekday,
     String dateStr,
   ) {
-    final todayLessons = student.schedule[weekday] ?? [];
+    final schedule = scheduleBox.get('main');
+    final todayLessons = schedule?.lessons[weekday] ?? [];
 
     return ExpansionTile(
       title: Text(student.name),
@@ -118,7 +150,7 @@ class _StudentsPageState extends State<StudentsPage> {
         OverflowBar(
           children: [
             IconButton(
-              icon: const Icon(Icons.edit),
+              icon: const Icon(Icons.edit, color: Colors.amber),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -129,10 +161,8 @@ class _StudentsPageState extends State<StudentsPage> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () {
-                student.delete();
-              },
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _deleteStudent(student),
             ),
           ],
         ),
@@ -142,7 +172,7 @@ class _StudentsPageState extends State<StudentsPage> {
 
   Widget _buildMarkWidget(Student student, String dateStr, String lesson) {
     final currentMark = student.marks[dateStr]?[lesson];
-    final key = '$dateStr|$lesson';
+    final key = '$dateStr|${student.key}|$lesson';
     final isEditing = editingLessons.contains(key);
 
     if (isEditing) {
@@ -167,7 +197,7 @@ class _StudentsPageState extends State<StudentsPage> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             IconButton(
-              icon: const Icon(Icons.edit, size: 20),
+              icon: const Icon(Icons.edit, size: 20, color: Colors.amber),
               onPressed: () {
                 setState(() {
                   editingLessons.add(key);

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:school/pages/students_page.dart';
+import 'package:school/pages/students_pages/students_page.dart';
 import 'package:school/pages/examples_page.dart';
 import 'package:school/pages/settings_page.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -22,6 +22,7 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   late final List<Widget> _screens;
   final AudioPlayer _player = AudioPlayer();
+  bool _isPlaying = false;
 
   @override
   void initState() {
@@ -34,6 +35,30 @@ class _HomePageState extends State<HomePage> {
         currentThemeMode: widget.currentThemeMode,
       ),
     ];
+
+    // слушаем завершение звука
+    _player.onPlayerComplete.listen((event) {
+      setState(() {
+        _isPlaying = false;
+      });
+    });
+  }
+
+  Future<void> _playBell() async {
+    setState(() => _isPlaying = true);
+
+    await _player.play(AssetSource('sounds/bell.mp3'));
+
+    _player.onPlayerComplete.listen((event) {
+      if (mounted) {
+        setState(() => _isPlaying = false);
+      }
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Дзвоник!')));
   }
 
   @override
@@ -43,17 +68,20 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Школа'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.campaign),
-            onPressed: () async {
-              await _player.play(AssetSource('sounds/bell.mp3'));
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Дзвоник!')));
-            },
+            icon: Icon(
+              _isPlaying ? Icons.notifications_active : Icons.notifications,
+              color:
+                  _isPlaying
+                      ? Colors.red
+                      : Color(
+                        0xFF2ecc71,
+                      ), // красный при проигрывании, иначе белый
+            ),
+            onPressed: _isPlaying ? null : _playBell,
+            tooltip: 'Дзвоник',
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.teal),
+        iconTheme: const IconThemeData(color: Color(0xFF2ecc71)),
       ),
       drawer: NavigationDrawer(
         onDestinationSelected: (index) {

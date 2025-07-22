@@ -19,9 +19,21 @@ void main() async {
   await Hive.openBox<Schedule>('schedule');
 
   final prefs = await SharedPreferences.getInstance();
-  final themeIndex = prefs.getInt('themeMode') ?? 2; // 0=light,1=dark,2=system
+  final themeIndex = prefs.getInt('themeMode') ?? 2;
 
   runApp(SchoolApp(initialThemeMode: ThemeMode.values[themeIndex]));
+}
+
+Future<void> clearAllStudentMarks() async {
+  final studentBox = Hive.box<Student>('students');
+
+  for (int i = 0; i < studentBox.length; i++) {
+    final student = studentBox.getAt(i);
+    if (student != null) {
+      student.marks.clear();
+      await student.save();
+    }
+  }
 }
 
 class SchoolApp extends StatefulWidget {

@@ -1,5 +1,6 @@
 // pages/examples_page.dart
 import 'package:flutter/material.dart';
+import 'package:numberpicker/numberpicker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/example.dart';
 import 'dart:math';
@@ -14,8 +15,14 @@ class ExamplesPage extends StatefulWidget {
 class _ExamplesPageState extends State<ExamplesPage> {
   final examplesBox = Hive.box<Example>('examples');
 
+  final TextEditingController minController = TextEditingController(text: '0');
+  final TextEditingController maxController = TextEditingController(
+    text: '100',
+  );
+
   int minValue = 0;
   int maxValue = 100;
+  int exampleCount = 10;
 
   void _generateExamples(int count, int minNum, int maxNum) {
     final rnd = Random();
@@ -70,37 +77,136 @@ class _ExamplesPageState extends State<ExamplesPage> {
     return Column(
       children: [
         OverflowBar(
-          alignment: MainAxisAlignment.spaceAround,
+          alignment: MainAxisAlignment.start,
           children: [
-            ElevatedButton.icon(
-              icon: Icon(
-                Icons.add,
-                color: const Color.fromARGB(255, 33, 72, 243),
-              ),
-              label: Text(
-                'Генерувати',
-                style: TextStyle(color: const Color.fromARGB(255, 33, 72, 243)),
-              ),
-              onPressed: () => _generateExamples(5, minValue, maxValue),
-            ),
-            ElevatedButton.icon(
-              icon: Icon(
-                Icons.check,
-                color: const Color.fromARGB(255, 14, 177, 20),
-              ),
-              label: Text(
-                'Перевірити',
-                style: TextStyle(color: const Color.fromARGB(255, 14, 177, 20)),
-              ),
-              onPressed: _checkAnswers,
-            ),
-            ElevatedButton.icon(
-              icon: Icon(Icons.delete, color: Colors.red),
-              label: Text('Очистити', style: TextStyle(color: Colors.red)),
-              onPressed: _deleteAll,
+            Row(
+              children: [
+                Column(
+                  children: [
+                    ElevatedButton.icon(
+                      icon: Icon(
+                        Icons.add,
+                        color: const Color.fromARGB(255, 33, 72, 243),
+                        size: 25,
+                      ),
+                      label: Text(
+                        'Генерувати',
+                        style: TextStyle(
+                          color: const Color.fromARGB(255, 33, 72, 243),
+                        ),
+                      ),
+                      onPressed:
+                          () => _generateExamples(
+                            exampleCount,
+                            minValue,
+                            maxValue,
+                          ),
+                    ),
+
+                    ElevatedButton.icon(
+                      icon: Icon(
+                        Icons.check,
+                        color: const Color.fromARGB(255, 14, 177, 20),
+                        size: 25,
+                      ),
+                      label: Text(
+                        'Перевірити',
+                        style: TextStyle(
+                          color: const Color.fromARGB(255, 14, 177, 20),
+                        ),
+                      ),
+                      onPressed: _checkAnswers,
+                    ),
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.clear, color: Colors.red, size: 25),
+                      label: Text(
+                        'Очистити',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      onPressed: _deleteAll,
+                    ),
+                  ],
+                ),
+                SizedBox(width: 20),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Кількість прикладів:'),
+                    NumberPicker(
+                      value: exampleCount,
+                      minValue: 1,
+                      maxValue: 20,
+                      onChanged:
+                          (value) => setState(() => exampleCount = value),
+                    ),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 60,
+                          child: Column(
+                            children: [
+                              Text('Мін'),
+                              TextField(
+                                controller: minController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  hintText: 'Мін',
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    vertical: 4,
+                                    horizontal: 6,
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  final parsed = int.tryParse(value);
+                                  if (parsed != null) {
+                                    setState(() {
+                                      minValue = parsed;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        SizedBox(
+                          width: 60,
+                          child: Column(
+                            children: [
+                              Text('Макс'),
+                              TextField(
+                                controller: maxController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  hintText: 'Макс',
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    vertical: 4,
+                                    horizontal: 6,
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  final parsed = int.tryParse(value);
+                                  if (parsed != null) {
+                                    setState(() {
+                                      maxValue = parsed;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
+        const Divider(),
         Expanded(
           child: ValueListenableBuilder(
             valueListenable: examplesBox.listenable(),
